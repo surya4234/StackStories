@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from "react";
+import { useNavigate } from "react-router-dom"; // For redirect
 import { motion, AnimatePresence } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -18,7 +19,9 @@ export default function UserDashboard({ user, onLogout }) {
   const [posts, setPosts] = useState(null);
   const [commentText, setCommentText] = useState({});
   const pollingRef = useRef(null);
+  const navigate = useNavigate();
 
+  // Fetch posts
   const fetchPosts = async () => {
     try {
       const res = await API.get("/posts");
@@ -37,6 +40,13 @@ export default function UserDashboard({ user, onLogout }) {
     return () => clearInterval(pollingRef.current);
   }, []);
 
+  // Logout + redirect
+  const handleLogout = () => {
+    if (onLogout) onLogout();
+    navigate("/"); // Redirect to landing
+  };
+
+  // Like post
   const likePost = async (id) => {
     if (!posts) return;
     const userId = user?._id || "local-user";
@@ -68,6 +78,7 @@ export default function UserDashboard({ user, onLogout }) {
     }
   };
 
+  // Add comment
   const addComment = async (postId) => {
     const content = (commentText[postId] || "").trim();
     if (!content) return;
@@ -124,6 +135,7 @@ export default function UserDashboard({ user, onLogout }) {
   return (
     <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white p-6">
       <ToastContainer position="top-right" />
+
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-center mb-8">
         <div>
@@ -132,7 +144,7 @@ export default function UserDashboard({ user, onLogout }) {
         </div>
         <div className="mt-4 md:mt-0">
           <button
-            onClick={onLogout}
+            onClick={handleLogout}
             className="bg-gradient-to-r from-purple-600 to-indigo-500 px-4 py-2 rounded-xl font-semibold hover:opacity-90 transition"
           >
             Logout
