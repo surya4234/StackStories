@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import API from "../api";
 
 export default function AdminDashboard({ user }) {
   const [posts, setPosts] = useState([]);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const navigate = useNavigate();
 
-  // Fetch posts from backend
   const fetchPosts = async () => {
     try {
       const res = await API.get("/posts");
@@ -20,7 +21,6 @@ export default function AdminDashboard({ user }) {
     fetchPosts();
   }, []);
 
-  // Create new post
   const createPost = async () => {
     if (!title.trim() || !body.trim()) return alert("Please fill both fields");
     try {
@@ -33,58 +33,91 @@ export default function AdminDashboard({ user }) {
     }
   };
 
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    navigate("/login");
+  };
+
   return (
-    <div className="p-6 bg-gray-50 min-h-screen">
-      <h1 className="text-3xl font-bold mb-6 text-purple-700">
-        Admin Dashboard 🧑‍💼
-      </h1>
+    <div className="min-h-screen bg-gradient-to-br from-[#0f0c29] via-[#302b63] to-[#24243e] text-white py-10 px-6 relative">
+      <div className="max-w-5xl mx-auto">
 
-      {/* Create Post */}
-      <div className="bg-white p-5 rounded-xl shadow mb-8">
-        <h2 className="text-xl font-semibold mb-3">Create a New Post</h2>
-        <input
-          type="text"
-          placeholder="Enter post title..."
-          className="w-full border px-3 py-2 mb-3 rounded-lg"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <textarea
-          placeholder="Enter post body..."
-          className="w-full border px-3 py-2 mb-3 rounded-lg"
-          rows="4"
-          value={body}
-          onChange={(e) => setBody(e.target.value)}
-        />
-        <button
-          onClick={createPost}
-          className="bg-purple-600 text-white px-4 py-2 rounded-lg hover:bg-purple-700"
-        >
-          Create Post
-        </button>
-      </div>
+        {/* Logout button top-right */}
+        <div className="flex justify-end mb-6">
+          <button
+            onClick={handleLogout}
+            className="px-4 py-2 bg-white/10 border border-white/30 backdrop-blur-lg rounded-lg hover:bg-white/20 transition text-white"
+          >
+            Logout
+          </button>
+        </div>
 
-      {/* Display Posts */}
-      <div className="grid gap-4">
-        {posts.length > 0 ? (
-          posts.map((p) => (
-            <div
-              key={p._id}
-              className="bg-white p-5 rounded-xl shadow hover:shadow-md transition"
+        {/* Header */}
+        <h1 className="text-4xl font-semibold mb-8 text-center">
+          Admin Dashboard
+        </h1>
+
+        {/* Create Post */}
+        <div className="backdrop-blur-lg bg-white/10 border border-white/20 p-6 rounded-2xl shadow-lg mb-10">
+          <h2 className="text-2xl font-semibold mb-4">Create a New Post</h2>
+
+          <div className="space-y-3">
+            <input
+              type="text"
+              placeholder="Post Title..."
+              className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-white placeholder-gray-300"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+            />
+
+            <textarea
+              placeholder="Post Content..."
+              rows="4"
+              className="w-full px-4 py-2 bg-white/10 border border-white/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-400 text-white placeholder-gray-300"
+              value={body}
+              onChange={(e) => setBody(e.target.value)}
+            />
+
+            <button
+              onClick={createPost}
+              className="w-full bg-purple-600 hover:bg-purple-700 transition-all py-2 rounded-lg font-medium"
             >
-              <h3 className="text-xl font-semibold text-purple-700 mb-2">
-                {p.title}
-              </h3>
-              <p className="text-gray-700 mb-3">{p.body}</p>
-              <p className="text-sm text-gray-500">
-                ❤️ Likes: {Array.isArray(p.likes) ? p.likes.length : p.likes || 0} | 💬 Comments:{" "}
-                {p.comments?.length || 0}
-              </p>
-            </div>
-          ))
-        ) : (
-          <p className="text-gray-500">No posts yet. Create one above!</p>
-        )}
+              Publish Post
+            </button>
+          </div>
+        </div>
+
+        {/* Posts List */}
+        <h2 className="text-2xl font-semibold mb-4">Existing Posts</h2>
+
+        <div className="space-y-4">
+          {posts.length > 0 ? (
+            posts.map((p) => (
+              <div
+                key={p._id}
+                className="backdrop-blur-lg bg-white/10 border border-white/20 p-5 rounded-xl hover:bg-white/20 transition"
+              >
+                <h3 className="text-xl font-semibold text-purple-300 mb-2">
+                  {p.title}
+                </h3>
+
+                <div
+                  className="text-gray-200 mb-3 leading-relaxed"
+                  dangerouslySetInnerHTML={{ __html: p.body }}
+                />
+
+                <p className="text-sm text-gray-300">
+                  ❤️ {Array.isArray(p.likes) ? p.likes.length : p.likes || 0} Likes | 💬 {p.comments?.length || 0} Comments
+                </p>
+              </div>
+            ))
+          ) : (
+            <p className="text-gray-300 text-center">
+              No posts yet. Create one above!
+            </p>
+          )}
+        </div>
       </div>
     </div>
   );

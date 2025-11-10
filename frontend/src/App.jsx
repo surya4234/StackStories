@@ -23,7 +23,6 @@ export default function App() {
 
   return (
     <Router>
-      <Navbar user={user} onLogout={handleLogout} />
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/login" element={<Login setUser={setUser} />} />

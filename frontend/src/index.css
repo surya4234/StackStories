@@ -6,3 +6,31 @@
 body {
   @apply bg-gray-50 text-gray-900 dark:bg-gray-900 dark:text-white;
 }
+.nav-link {
+  position: relative;
+  color: rgba(255,255,255,0.78);
+  transition: color .25s ease;
+}
+
+.nav-link:hover {
+  color: #fff;
+}
+
+.nav-link::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: -3px;
+  width: 0%;
+  height: 2px;
+  background: #8b5cf6; /* violet-500 accent */
+  transition: width .25s ease;
+}
+
+.nav-link:hover::after {
+  width: 100%;
+}
+
+.smooth-scroll {
+  scroll-behavior: smooth;
+}

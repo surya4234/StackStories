@@ -1,4 +1,22 @@
-import React from "react";
+// LandingPageRefactor.jsx
+// Full refactor of your LandingPage with:
+// - Framer Motion scroll reveal animations
+// - Typing headline + subtle animated background orbs
+// - Interactive demo card with 3D tilt + sheen on hover
+// - Smooth scroll nav links
+// - Glassmorphism feature cards, modern palette (deep slate + vivid indigo)
+// - Tailwind CSS only styling (plus a small <style> block for keyframes used inline)
+// - Uses lucide-react icons already; ensure framer-motion is installed
+//
+// Install dependencies:
+// npm i framer-motion lucide-react
+//
+// Notes:
+// - This file assumes Tailwind is set up and you use a modern font (Inter / Plus Jakarta).
+// - Drop this component into your routes and render normally.
+
+import React, { useEffect, useRef, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   PenTool,
   Users,
@@ -6,348 +24,504 @@ import {
   TrendingUp,
   CreditCard,
   ArrowRight,
+  Sparkles,
 } from "lucide-react";
-import { useNavigate } from "react-router-dom";
-/**
- * LandingPage.jsx
- *
- * Single-file React + TailwindCSS landing page for a modern blogging platform.
- * - Mobile-first, fully responsive
- * - "Distraction-Free Creator Focus" design philosophy
- * - Uses lucide-react for icons
- *
- * Usage:
- * - Ensure Tailwind CSS is configured in your project.
- * - Install lucide-react: `npm install lucide-react`
- * - Import and render <LandingPage /> in your app.
- */
+import { motion, useMotionValue, useTransform } from "framer-motion";
 
-const CTAPrimary = ({ children }) => (
-  <button
-    onClick= {() => navigate("/login")}
-    className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-fuchsia-600 text-white font-semibold rounded-lg px-5 py-3 shadow-lg hover:scale-[1.01] transform transition duration-250 ease-out focus:outline-none focus:ring-4 focus:ring-indigo-200"
-  >
-    {children}
-    <ArrowRight size={16} />
-  </button>
-);
+/* ---------------------------
+   Utility / Small subcomponents
+   --------------------------- */
 
-const CTASecondary = ({ children, onClick }) => (
-  <button
-    onClick={() => navigate("/login")}
-    className="inline-flex items-center gap-3 border border-neutral-200 dark:border-neutral-700 text-neutral-800 dark:text-neutral-100 bg-transparent px-4 py-2 rounded-lg hover:bg-neutral-50 dark:hover:bg-neutral-800 transition duration-200"
-  >
-    {children}
-  </button>
-);
-
-const IconCard = ({ Icon, title, desc, accent }) => (
-  <div className="flex flex-col items-start gap-4 p-6 rounded-xl bg-white/80 dark:bg-white/5 backdrop-blur-sm border border-neutral-100 dark:border-neutral-800 shadow-sm hover:shadow-md transition-transform transform hover:-translate-y-1">
-    <div
-      className={`p-3 rounded-lg inline-flex items-center justify-center ${accent}`}
-      aria-hidden
-    >
-      <Icon size={20} className="text-white" />
-    </div>
-    <div>
-      <h3 className="text-lg font-semibold text-neutral-900 dark:text-neutral-100">
-        {title}
-      </h3>
-      <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1">{desc}</p>
-    </div>
-  </div>
-);
-
-const FeaturedCreator = ({ avatar, name, articleTitle }) => (
-  <article className="flex items-center gap-4 p-4 rounded-xl bg-white/80 dark:bg-white/5 border border-neutral-100 dark:border-neutral-800 shadow-sm hover:shadow-md transition">
-    <img
-      src={avatar}
-      alt={name}
-      className="w-14 h-14 rounded-full object-cover ring-1 ring-neutral-200 dark:ring-neutral-800"
-    />
-    <div className="flex-1">
-      <div className="flex items-center justify-between gap-4">
-        <h4 className="text-md font-medium text-neutral-900 dark:text-neutral-100">
-          {name}
-        </h4>
-        <a
-          href="#"
-          className="text-sm text-indigo-600 hover:text-indigo-700 dark:text-indigo-400"
-        >
-          View Article →
-        </a>
-      </div>
-      <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-1 truncate">
-        {articleTitle}
-      </p>
-    </div>
-  </article>
-);
-
-/* Simple ticker that cycles through messages */
-const Ticker = ({ messages = [], interval = 3000 }) => {
-  const [idx, setIdx] = React.useState(0);
-  React.useEffect(() => {
-    const t = setInterval(() => setIdx((p) => (p + 1) % messages.length), interval);
-    return () => clearInterval(t);
-  }, [messages.length, interval]);
+const NavLink = ({ href, children }) => {
+  const onClick = (e) => {
+    e.preventDefault();
+    const el = document.querySelector(href);
+    if (el) el.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
   return (
-    <div className="flex items-center gap-4 overflow-hidden">
-      <div className="text-sm text-neutral-500 dark:text-neutral-400 whitespace-nowrap">
-        {messages[idx]}
-      </div>
-    </div>
+    <a
+      href={href}
+      onClick={onClick}
+      className="text-sm text-slate-200 hover:text-white/95 transition"
+    >
+      {children}
+    </a>
   );
 };
 
-export default function LandingPage() {
+const FeatureCard = ({ Icon, title, desc, accent }) => (
+  <motion.div
+    whileHover={{ y: -6 }}
+    className="group relative p-6 rounded-2xl bg-white/6 border border-white/6 backdrop-blur-md"
+  >
+    <div className={`w-12 h-12 rounded-lg flex items-center justify-center ${accent} text-white shadow-sm`}>
+      <Icon size={20} />
+    </div>
+    <h3 className="mt-4 text-lg font-semibold text-slate-50">{title}</h3>
+    <p className="mt-2 text-sm text-slate-300 leading-relaxed">{desc}</p>
+
+    {/* subtle glass highlight */}
+    <div className="pointer-events-none absolute inset-0 rounded-2xl bg-gradient-to-t from-white/2 to-transparent opacity-0 group-hover:opacity-10 transition" />
+  </motion.div>
+);
+
+/* ---------------------------
+   Main LandingPage component
+   --------------------------- */
+
+export default function LandingPageRefactor() {
   const navigate = useNavigate();
-  const stats = [
-    "1,240 posts published today",
-    "8,712 new readers joined this week",
-    "Top stories read in 5 mins or less",
-  ];
 
-  const featured = [
-    {
-      avatar: "https://via.placeholder.com/160x160.png?text=A",
-      name: "Asha Verma",
-      articleTitle: "How to structure a story that hooks at first line",
-    },
-    {
-      avatar: "https://via.placeholder.com/160x160.png?text=J",
-      name: "J. Kumar",
-      articleTitle: "Finding rhythm: Daily writing tips that actually work",
-    },
-    {
-      avatar: "https://via.placeholder.com/160x160.png?text=M",
-      name: "Maya Lee",
-      articleTitle: "Turning side projects into sustainable income",
-    },
+  // Typing effect
+  const phrases = [
+    "Write freely. Publish instantly.",
+    "Build an audience. Earn from your words.",
+    "A real-time publishing experience.",
   ];
+  const [typing, setTyping] = useState("");
+  const [phraseIndex, setPhraseIndex] = useState(0);
+  const [charIndex, setCharIndex] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
+  useEffect(() => {
+    const speed = deleting ? 40 : 70;
+    const timeout = setTimeout(() => {
+      const current = phrases[phraseIndex];
+      if (!deleting) {
+        // type forward
+        setTyping(current.slice(0, charIndex + 1));
+        setCharIndex((c) => c + 1);
+        if (charIndex + 1 === current.length) {
+          // pause then delete
+          setTimeout(() => setDeleting(true), 900);
+        }
+      } else {
+        // deleting
+        setTyping(current.slice(0, charIndex - 1));
+        setCharIndex((c) => c - 1);
+        if (charIndex - 1 === 0) {
+          setDeleting(false);
+          setPhraseIndex((p) => (p + 1) % phrases.length);
+        }
+      }
+    }, speed);
+
+    return () => clearTimeout(timeout);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [charIndex, deleting, phraseIndex]);
+
+  // Interactive demo tilt (mouse-driven)
+  const demoRef = useRef(null);
+  const x = useMotionValue(0);
+  const y = useMotionValue(0);
+  const rotateX = useTransform(y, [-30, 30], [10, -10]);
+  const rotateY = useTransform(x, [-30, 30], [-10, 10]);
+  useEffect(() => {
+    const el = demoRef.current;
+    if (!el) return;
+    const handleMove = (e) => {
+      const rect = el.getBoundingClientRect();
+      const px = (e.clientX - rect.left) / rect.width; // 0..1
+      const py = (e.clientY - rect.top) / rect.height; // 0..1
+      // center to -30..30
+      x.set((px - 0.5) * 60);
+      y.set((py - 0.5) * 60);
+    };
+    const handleLeave = () => {
+      x.set(0);
+      y.set(0);
+    };
+    el.addEventListener("mousemove", handleMove);
+    el.addEventListener("mouseleave", handleLeave);
+    el.addEventListener("touchmove", handleMove, { passive: true });
+    el.addEventListener("touchend", handleLeave);
+    return () => {
+      el.removeEventListener("mousemove", handleMove);
+      el.removeEventListener("mouseleave", handleLeave);
+      el.removeEventListener("touchmove", handleMove);
+      el.removeEventListener("touchend", handleLeave);
+    };
+  }, [x, y]);
+
+  // Framer reveal variants
+  const reveal = {
+    hidden: { opacity: 0, y: 16 },
+    show: (i = 0) => ({ opacity: 1, y: 0, transition: { delay: i * 0.08, duration: 0.5, ease: "easeOut" } }),
+  };
+
+  /* ---------------------------
+     UI / JSX
+     --------------------------- */
   return (
-    <main className="min-h-screen text-neutral-900 dark:text-neutral-100 bg-gradient-to-b from-white to-neutral-50 dark:from-[#071026] dark:to-[#031021]">
-      {/* NAVBAR */}
-      {/* <header className="sticky top-0 z-40 backdrop-blur-md bg-white/60 dark:bg-black/40 border-b border-neutral-100 dark:border-neutral-800">
-        <div className="container flex items-center justify-between gap-4 py-4">
-          <div className="flex items-center gap-3">
-            <div
-              className="w-10 h-10 rounded-md bg-gradient-to-tr from-indigo-600 to-fuchsia-600 flex items-center justify-center text-white font-bold shadow-md"
-              aria-hidden
-            >
-              M
-            </div>
-            <span className="font-semibold text-lg tracking-tight">Mediumish</span>
-          </div>
-           <nav className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm text-neutral-700 dark:text-neutral-300 hover:text-indigo-600">
-              Explore
-            </a>
-            <a href="#" className="text-sm text-neutral-700 dark:text-neutral-300 hover:text-indigo-600">
-              Pricing
-            </a>
-            <a href="#" className="text-sm text-neutral-700 dark:text-neutral-300 hover:text-indigo-600">
-              About
-            </a>
-            <div className="ml-2">
-              <CTASecondary>Explore Trending Posts</CTASecondary>
-            </div>
-          </nav>
+    <div className="min-h-screen bg-slate-900 text-slate-100 antialiased">
+      {/* small inline styles for animated orbs and typing caret */}
+      <style>{`
+        @keyframes floatX {
+          0% { transform: translateX(0) translateY(0) }
+          50% { transform: translateX(20px) translateY(-8px) }
+          100% { transform: translateX(0) translateY(0) }
+        }
+        @keyframes floatY {
+          0% { transform: translateY(0) }
+          50% { transform: translateY(-18px) }
+          100% { transform: translateY(0) }
+        }
+        .typing-caret::after {
+          content: '';
+          display: inline-block;
+          width: 2px;
+          height: 1.2em;
+          margin-left: 6px;
+          background: linear-gradient(180deg, rgba(255,255,255,0.95), rgba(255,255,255,0.6));
+          animation: blink 1s steps(2, start) infinite;
+        }
+        @keyframes blink {
+          0%, 50% { opacity: 1 }
+          51%, 100% { opacity: 0 }
+        }
+      `}</style>
 
+      {/* NAV */}
+      <nav className="sticky top-0 z-40 bg-slate-900/60 backdrop-blur-sm border-b border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <button className="text-sm py-2 px-3 rounded-md hover:bg-neutral-100 dark:hover:bg-neutral-800 transition">Log in</button>
-            <CTAPrimary>Start Writing for Free</CTAPrimary>
+            <div className="w-10 h-10 rounded-md bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold shadow">
+              P
+            </div>
+            <div className="text-lg font-semibold tracking-tight">PostPortal</div>
+          </div>
+
+          <div className="hidden md:flex items-center gap-6">
+            <NavLink href="#features">Features</NavLink>
+            <NavLink href="#demo">Demo</NavLink>
+            <NavLink href="#pricing">Pricing</NavLink>
+            <NavLink href="#footer">Company</NavLink>
+            <button
+              onClick={() => navigate("/login")}
+              className="ml-2 inline-flex items-center gap-2 bg-gradient-to-r from-indigo-600 to-violet-600 px-4 py-2 rounded-full text-sm font-semibold shadow hover:scale-105 transform transition"
+            >
+              Get Started <ArrowRight size={16} />
+            </button>
+          </div>
+
+          {/* mobile actions */}
+          <div className="md:hidden">
+            <button onClick={() => navigate("/login")} className="text-sm px-3 py-2 rounded-md bg-indigo-600/90">
+              Sign in
+            </button>
           </div>
         </div>
-      </header> */}
+      </nav>
 
       {/* HERO */}
-      <section className="container grid gap-8 grid-cols-1 md:grid-cols-2 items-center py-14">
-        {/* Left: Text */}
-        <div className="space-y-6">
-          <h1 className="text-4xl md:text-5xl font-extrabold leading-tight">
-            Just Write. <span className="bg-clip-text text-transparent bg-gradient-to-r from-indigo-600 to-fuchsia-600">We Handle the Rest.</span>
-          </h1>
-          <p className="text-lg text-neutral-600 dark:text-neutral-300 max-w-xl">
-            The fastest way to publish your stories, build an audience, and monetize your passion—no coding required.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
-            <CTAPrimary>Start Writing for Free</CTAPrimary>
-            <CTASecondary>Explore Trending Posts</CTASecondary>
-          </div>
-
-          <div className="mt-4 rounded-xl bg-white/80 dark:bg-white/5 backdrop-blur-sm p-4 border border-neutral-100 dark:border-neutral-800 inline-flex items-center gap-4">
-            <div className="flex items-center gap-3">
-              <TrendingUp size={18} className="text-indigo-600" />
-              <div className="text-sm text-neutral-700 dark:text-neutral-300">
-                <strong>Trending:</strong> <span className="text-indigo-600">Why readers love short essays</span>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Right: Visual mockup */}
-        <div className="flex items-center justify-center">
-          <div className="w-full max-w-xl grid grid-cols-1 md:grid-cols-2 gap-4">
-            {/* Editor mock */}
-            <figure className="rounded-xl overflow-hidden bg-white/95 dark:bg-white/6 border border-neutral-100 dark:border-neutral-800 shadow-md p-4 flex flex-col gap-3">
-              <div className="flex items-center justify-between">
-                <div className="h-3 w-20 rounded-full bg-neutral-200 dark:bg-neutral-800"></div>
-                <div className="h-3 w-8 rounded-full bg-neutral-200 dark:bg-neutral-800"></div>
-              </div>
-              <div className="flex-1">
-                <div className="h-4 bg-neutral-100 dark:bg-neutral-800 rounded mb-2 w-3/4"></div>
-                <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded mb-1 w-full"></div>
-                <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded mb-1 w-5/6"></div>
-                <div className="h-3 bg-neutral-100 dark:bg-neutral-800 rounded mb-1 w-2/3"></div>
-              </div>
-              <div className="text-sm text-neutral-500">Clean editor — zero distractions</div>
-            </figure>
-
-            {/* Mobile publish mock */}
-            <figure className="rounded-xl overflow-hidden bg-gradient-to-b from-neutral-50 to-white dark:from-[#07172b]/30 dark:to-[#031021]/20 border border-neutral-100 dark:border-neutral-800 shadow-md p-4 flex flex-col">
-              <div className="h-8 w-20 bg-neutral-100 dark:bg-neutral-800 rounded mb-3"></div>
-              <div className="h-4 bg-neutral-200 dark:bg-neutral-800 rounded mb-2"></div>
-              <div className="h-3 bg-neutral-200 dark:bg-neutral-800 rounded mb-1 w-4/5"></div>
-              <div className="mt-auto text-sm text-neutral-500">Reader view • Mobile</div>
-            </figure>
-          </div>
-        </div>
-      </section>
-
-      {/* PROBLEM / SOLUTION */}
-      <section className="container py-12">
-        <div className="max-w-4xl mx-auto text-center mb-8">
-          <h2 className="text-2xl font-semibold">The Writer's Struggle — Solved</h2>
-          <p className="text-neutral-600 dark:text-neutral-300 mt-2">
-            Simple, distraction-free tools to help you focus on what matters — your words.
-          </p>
-        </div>
-
-        <div className="grid gap-6 grid-cols-1 sm:grid-cols-3">
-          <IconCard
-            Icon={PenTool}
-            title="Zero Distractions"
-            desc="A clean editor that fades the interface away—so your words get the spotlight."
-            accent="bg-indigo-600"
-          />
-          <IconCard
-            Icon={Users}
-            title="Built-in Audience"
-            desc="Discoverability features help your best work find readers without extra promotion."
-            accent="bg-emerald-500"
-          />
-          <IconCard
-            Icon={Database}
-            title="Your Content, Your Data"
-            desc="Export, own, and control your stories — we never hold your audience hostage."
-            accent="bg-fuchsia-600"
-          />
-        </div>
-      </section>
-
-      {/* SOCIAL PROOF */}
-      <section className="container py-12">
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6 mb-6">
-          <div className="flex items-center gap-4">
-            <div className="rounded-full bg-white/90 dark:bg-white/6 p-3 border border-neutral-100 dark:border-neutral-800 shadow-sm">
-              <TrendingUp size={20} className="text-indigo-600" />
-            </div>
-            <div>
-              <div className="text-sm text-neutral-500">Live activity</div>
-              <div className="text-lg font-semibold">
-                <Ticker messages={stats} interval={3200} />
-              </div>
-            </div>
-          </div>
-
-          <div className="text-sm text-neutral-500">Join thousands of creators building meaningful work.</div>
-        </div>
-
-        <div className="grid gap-4 sm:grid-cols-3">
-          {featured.map((f, i) => (
-            <FeaturedCreator
-              key={i}
-              avatar={f.avatar}
-              name={f.name}
-              articleTitle={f.articleTitle}
+      <header className="relative overflow-hidden">
+        {/* animated orbs */}
+        <div aria-hidden className="absolute inset-0 -z-10">
+          <div style={{ mixBlendMode: "screen" }} className="relative w-full h-full">
+            <div
+              style={{
+                width: 220,
+                height: 220,
+                left: "4%",
+                top: "10%",
+                background: "radial-gradient(circle at 30% 30%, rgba(99,102,241,0.28), transparent 30%)",
+                filter: "blur(40px)",
+                position: "absolute",
+                borderRadius: "50%",
+                animation: "floatX 6s ease-in-out infinite",
+              }}
             />
-          ))}
+            <div
+              style={{
+                width: 160,
+                height: 160,
+                right: "8%",
+                top: "20%",
+                background: "radial-gradient(circle at 40% 40%, rgba(99,102,241,0.2), transparent 30%)",
+                filter: "blur(28px)",
+                position: "absolute",
+                borderRadius: "50%",
+                animation: "floatY 7s ease-in-out infinite",
+              }}
+            />
+            <div
+              style={{
+                width: 120,
+                height: 120,
+                right: "20%",
+                bottom: "4%",
+                background: "radial-gradient(circle at 40% 40%, rgba(139,92,246,0.14), transparent 30%)",
+                filter: "blur(24px)",
+                position: "absolute",
+                borderRadius: "50%",
+                animation: "floatX 9s ease-in-out infinite",
+              }}
+            />
+          </div>
+        </div>
+
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-20">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center">
+            {/* left: hero copy */}
+            <div className="md:col-span-6">
+              <motion.h1
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true, margin: "-100px" }}
+                variants={reveal}
+                className="text-4xl md:text-5xl font-extrabold tracking-tight leading-tight"
+              >
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-indigo-400 to-violet-400">
+                  Write <span className="whitespace-nowrap">without limits.</span>
+                </span>
+                <span className="block mt-2 text-slate-200 text-lg md:text-xl font-medium">
+                  <span className="typing-caret">{typing}</span>
+                </span>
+              </motion.h1>
+
+              <motion.p
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={reveal}
+                className="mt-6 text-slate-300 max-w-xl leading-relaxed"
+              >
+                PostPortal is a modern publishing platform with a real-time, delightful authoring experience.
+                Publish, grow your audience, and monetize — all with beautiful, fast tools.
+              </motion.p>
+
+              <motion.div
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={reveal}
+                className="mt-8 flex flex-wrap gap-4"
+              >
+                <button
+                  onClick={() => navigate("/register")}
+                  className="inline-flex items-center gap-3 bg-gradient-to-r from-indigo-600 to-violet-600 px-5 py-3 rounded-full font-semibold shadow-lg transform hover:scale-[1.02] transition"
+                >
+                  Start writing — it's free <ArrowRight size={16} />
+                </button>
+                <button
+                  onClick={() => {
+                    const el = document.querySelector("#demo");
+                    if (el) el.scrollIntoView({ behavior: "smooth" });
+                  }}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-white/6 border border-white/8 text-sm"
+                >
+                  Try interactive demo
+                </button>
+              </motion.div>
+
+              <motion.div
+                initial="hidden"
+                whileInView="show"
+                viewport={{ once: true }}
+                variants={reveal}
+                className="mt-8 text-sm text-slate-400 flex items-center gap-3"
+              >
+                <Sparkles size={16} className="text-indigo-400" />
+                <span>Trusted by creators & teams — secure exports, analytics, and subscription tools.</span>
+              </motion.div>
+            </div>
+
+            {/* right: interactive demo */}
+            <div className="md:col-span-6 flex justify-center md:justify-end">
+              <motion.div
+                id="demo"
+                ref={demoRef}
+                style={{ rotateX, rotateY }}
+                initial={{ opacity: 0, scale: 0.98 }}
+                whileInView={{ opacity: 1, scale: 1 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, ease: "easeOut" }}
+                className="w-full max-w-md transform perspective-800"
+              >
+                <div className="relative">
+                  {/* glossy card */}
+                  <div
+                    className="rounded-2xl bg-gradient-to-b from-white/6 to-white/3 border border-white/6 backdrop-blur-md p-5 shadow-2xl"
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-semibold">A</div>
+                        <div>
+                          <div className="text-sm font-semibold">Asha Verma</div>
+                          <div className="text-xs text-slate-400">2 hours ago • 3 min read</div>
+                        </div>
+                      </div>
+
+                      <div className="text-xs text-slate-400">Draft</div>
+                    </div>
+
+                    <div className="mt-4">
+                      <h3 className="text-xl font-bold text-white leading-tight">How to structure a story that hooks at first line</h3>
+                      <p className="mt-3 text-slate-300 text-sm leading-relaxed">A small tease of the article — this card responds to your cursor and highlights sections on hover.</p>
+                    </div>
+
+                    <div className="mt-5 flex items-center justify-between">
+                      <div className="flex items-center gap-3">
+                        <div className="text-sm px-3 py-1 rounded-full bg-white/6 text-slate-100">#writing</div>
+                        <div className="text-sm px-3 py-1 rounded-full bg-white/6 text-slate-100">#tips</div>
+                      </div>
+                      <div className="text-sm text-slate-300">❤ 128</div>
+                    </div>
+                  </div>
+
+                  {/* sheen overlay */}
+                  <div className="pointer-events-none absolute inset-0 rounded-2xl" style={{ background: "linear-gradient(120deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))", mixBlendMode: "overlay" }} />
+
+                  {/* subtle hover sheen that follows X motion value */}
+                  <motion.div
+                    style={{
+                      x: useTransform(x, (v) => `${v / 2}px`),
+                      y: useTransform(y, (v) => `${-v / 3}px`),
+                    }}
+                    className="absolute -left-12 -top-12 w-40 h-40 rounded-full blur-lg opacity-0 pointer-events-none"
+                    animate={{ opacity: [0, 0.12, 0] }}
+                    transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+                  />
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* FEATURES */}
+      <section id="features" className="py-20">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <motion.div initial="hidden" whileInView="show" viewport={{ once: true }} className="text-center max-w-2xl mx-auto">
+            <motion.h2 variants={reveal} className="text-2xl font-semibold">Features that feel alive</motion.h2>
+            <motion.p variants={reveal} className="mt-3 text-slate-300">Design-first tools for writers: a fast editor, audience growth, and seamless monetization.</motion.p>
+          </motion.div>
+
+          <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+            <FeatureCard
+              Icon={PenTool}
+              title="Distraction-free editor"
+              desc="Write with clarity — our editor hides UI while keeping power where you need it."
+              accent="bg-indigo-500"
+            />
+            <FeatureCard
+              Icon={Users}
+              title="Built-in audience tools"
+              desc="Smart discovery, subscriptions, and analytics to grow readers organically."
+              accent="bg-emerald-500"
+            />
+            <FeatureCard
+              Icon={Database}
+              title="Your data, exportable"
+              desc="Download posts, subscribers, and analytics whenever you want."
+              accent="bg-fuchsia-500"
+            />
+          </div>
         </div>
       </section>
 
-      {/* FEATURE HIGHLIGHTS */}
-      <section className="container py-12">
-        <div className="max-w-4xl mx-auto text-center mb-10">
-          <h2 className="text-2xl font-semibold">Features that help you create & earn</h2>
-          <p className="text-neutral-600 dark:text-neutral-300 mt-2">
-            Focus on your craft — we take care of the rest: growth, publishing, and monetization.
-          </p>
-        </div>
-
-        <div className="grid gap-6 grid-cols-1 md:grid-cols-3">
-          <div className="card">
-            <h3 className="text-lg font-semibold">Write how you want</h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
-              Seamless Markdown and rich text together — format instantly and see it live.
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-indigo-50 dark:bg-indigo-900/30">
-                <PenTool size={18} className="text-indigo-600" />
+      {/* MORE / TRUST */}
+      <section id="pricing" className="py-16 bg-slate-800/40 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8">
+          <div className="grid md:grid-cols-3 gap-6">
+            <motion.div className="rounded-2xl p-6 bg-white/5 border border-white/6" whileHover={{ y: -6 }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-white">Starter</h4>
+                  <p className="text-sm text-slate-300 mt-1">Perfect for personal blogs & side projects</p>
+                </div>
+                <div className="text-2xl font-bold text-indigo-400">$0</div>
               </div>
-              <div className="text-sm text-neutral-600 dark:text-neutral-300">Fast formatting</div>
-            </div>
-          </div>
-
-          <div className="card">
-            <h3 className="text-lg font-semibold">Get paid by readers</h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
-              Built-in subscriptions, tips, and paywalled posts so you can monetize directly.
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-fuchsia-50 dark:bg-fuchsia-900/30">
-                <CreditCard size={18} className="text-fuchsia-600" />
+              <ul className="mt-4 text-sm text-slate-300 space-y-2">
+                <li>Unlimited posts</li>
+                <li>Basic analytics</li>
+                <li>Email support</li>
+              </ul>
+              <div className="mt-6">
+                <button onClick={() => navigate("/register")} className="w-full rounded-full py-2 bg-indigo-600 font-semibold">Start free</button>
               </div>
-              <div className="text-sm text-neutral-600 dark:text-neutral-300">Flexible monetization</div>
-            </div>
-          </div>
+            </motion.div>
 
-          <div className="card">
-            <h3 className="text-lg font-semibold">Grow with discovery</h3>
-            <p className="text-sm text-neutral-600 dark:text-neutral-300 mt-2">
-              Smart recommendations and reader-first feeds connect your writing to the right audience.
-            </p>
-            <div className="mt-4 flex items-center gap-3">
-              <div className="p-2 rounded-full bg-emerald-50 dark:bg-emerald-900/30">
-                <Users size={18} className="text-emerald-600" />
+            <motion.div className="rounded-2xl p-6 bg-white/5 border border-white/6" whileHover={{ y: -6 }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-white">Creator</h4>
+                  <p className="text-sm text-slate-300 mt-1">Monetize and build a following</p>
+                </div>
+                <div className="text-2xl font-bold text-indigo-400">$12/mo</div>
               </div>
-              <div className="text-sm text-neutral-600 dark:text-neutral-300">Built for discovery</div>
-            </div>
-          </div>
-        </div>
-      </section>
+              <ul className="mt-4 text-sm text-slate-300 space-y-2">
+                <li>Advanced analytics</li>
+                <li>Subscription payments</li>
+                <li>Priority support</li>
+              </ul>
+              <div className="mt-6">
+                <button onClick={() => navigate("/register")} className="w-full rounded-full py-2 bg-violet-600 font-semibold">Get Creator</button>
+              </div>
+            </motion.div>
 
-      {/* FINAL FOOTER CTA */}
-      <section className="py-14">
-        <div className="container text-center">
-          <div className="max-w-3xl mx-auto glass p-10 rounded-2xl border border-neutral-100 dark:border-neutral-800">
-            <h2 className="text-3xl font-extrabold mb-4">Ready to share your story?</h2>
-            <p className="text-neutral-600 dark:text-neutral-300 mb-6">
-              Start your blog, build a following, and earn — all in one place, without the noise.
-            </p>
-            <div className="flex items-center justify-center gap-4">
-              <CTAPrimary onClick={() => navigate("/login")}>Start Your Blog Today</CTAPrimary>
-              <CTASecondary>See sample posts</CTASecondary>
-            </div>
+            <motion.div className="rounded-2xl p-6 bg-white/5 border border-white/6" whileHover={{ y: -6 }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <h4 className="text-lg font-semibold text-white">Team</h4>
+                  <p className="text-sm text-slate-300 mt-1">Multiple authors, team analytics</p>
+                </div>
+                <div className="text-2xl font-bold text-indigo-400">Contact</div>
+              </div>
+              <ul className="mt-4 text-sm text-slate-300 space-y-2">
+                <li>Multi-author workspaces</li>
+                <li>Custom domains</li>
+                <li>Dedicated support</li>
+              </ul>
+              <div className="mt-6">
+                <button onClick={() => navigate("/contact")} className="w-full rounded-full py-2 bg-white/6 border border-white/8 font-semibold">Contact sales</button>
+              </div>
+            </motion.div>
           </div>
-
-          <footer className="mt-10 text-sm text-neutral-500 dark:text-neutral-400">
-            © {new Date().getFullYear()} Mediumish • Terms • Privacy
-          </footer>
         </div>
       </section>
-    </main>
+
+      {/* FOOTER */}
+      <footer id="footer" className="mt-20 bg-slate-900 border-t border-slate-800">
+        <div className="max-w-7xl mx-auto px-6 lg:px-8 py-12 grid grid-cols-1 md:grid-cols-4 gap-8">
+          <div>
+            <div className="flex items-center gap-3 mb-4">
+              <div className="w-10 h-10 rounded-md bg-gradient-to-tr from-indigo-500 to-violet-500 flex items-center justify-center text-white font-bold">P</div>
+              <div className="text-lg font-semibold">PostPortal</div>
+            </div>
+            <p className="text-sm text-slate-400">Fast, beautiful publishing for creators who care about craft.</p>
+            <div className="mt-4 text-sm text-slate-500">© {new Date().getFullYear()} PostPortal</div>
+          </div>
+
+          <div>
+            <h5 className="text-sm font-semibold text-slate-200 mb-3">Product</h5>
+            <ul className="text-sm space-y-2 text-slate-400">
+              <li><a href="#features" className="hover:text-white">Features</a></li>
+              <li><a href="#pricing" className="hover:text-white">Pricing</a></li>
+              <li><a href="/docs" className="hover:text-white">Docs</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="text-sm font-semibold text-slate-200 mb-3">Company</h5>
+            <ul className="text-sm space-y-2 text-slate-400">
+              <li><a href="/about" className="hover:text-white">About</a></li>
+              <li><a href="/careers" className="hover:text-white">Careers</a></li>
+              <li><a href="/blog" className="hover:text-white">Blog</a></li>
+            </ul>
+          </div>
+
+          <div>
+            <h5 className="text-sm font-semibold text-slate-200 mb-3">Support</h5>
+            <ul className="text-sm space-y-2 text-slate-400">
+              <li><a href="/help" className="hover:text-white">Help Center</a></li>
+              <li><a href="/contact" className="hover:text-white">Contact</a></li>
+              <li><a href="/terms" className="hover:text-white">Terms</a></li>
+            </ul>
+          </div>
+        </div>
+      </footer>
+    </div>
   );
 }
