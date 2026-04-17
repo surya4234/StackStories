@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const API = axios.create({
-  baseURL: "https://stack-stories-jjqe.vercel.app/api",
+  baseURL: "https://stack-stories-1wpltik9l-suryas-projects-521dbc15.vercel.app",
 });
 
 // Attach token
